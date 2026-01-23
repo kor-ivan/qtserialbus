@@ -58,13 +58,34 @@ bool QModbusTcpClient::open()
     if (d->m_socket->state() != QAbstractSocket::UnconnectedState)
         return false;
 
+    const QString host = d->m_networkAddress;
+    const int port = d->m_networkPort;
+
+    // Basic validation
+    if (host.isEmpty() || port <= 0) {
+        setError(tr("Invalid connection settings for TCP communication specified."),
+                 QModbusDevice::ConnectionError);
+        qCWarning(QT_MODBUS)
+            << "(TCP client) Invalid host:" << host << "or port:" << port;
+        return false;
+    }
+
+    // === FIX STARTS HERE ===
+    // Try IP address first (IPv4 / IPv6 / IPv6 link-local with scope-id)
+    QHostAddress address;
+    if (address.setAddress(host)) {
+        d->m_socket->connectToHost(address, port);
+        return true;
+    }
+    // === FIX ENDS HERE ===
+
     const QUrl url = QUrl::fromUserInput(d->m_networkAddress + QStringLiteral(":")
         + QString::number(d->m_networkPort));
 
     if (!url.isValid()) {
         setError(tr("Invalid connection settings for TCP communication specified."),
             QModbusDevice::ConnectionError);
-        qCWarning(QT_MODBUS) << "$%^ (TCP client) Invalid host:" << url.host() << "or port:"
+        qCWarning(QT_MODBUS) << "(TCP client) Invalid host:" << url.host() << "or port:"
             << url.port();
         return false;
     }

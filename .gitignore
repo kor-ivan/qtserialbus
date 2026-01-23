@@ -31,3 +31,4 @@ Makefile*
 .vs
 CMakeSettings.json
 out/*
+.qtcreator/
